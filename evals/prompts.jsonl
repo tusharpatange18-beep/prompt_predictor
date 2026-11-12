@@ -1,0 +1,50 @@
+{"weak": "write code", "ideal": "Write a Python function that removes duplicate items from a list while preserving order. Include type hints, a short docstring, and two usage examples."}
+{"weak": "tell me about dogs", "ideal": "Give me a beginner-friendly overview of dog breeds: the 5 most popular family breeds, with size, temperament and exercise needs in a table."}
+{"weak": "fix my bug", "ideal": "Help me debug this error. I will paste the code, the full error message, what I expected, and what actually happened. Explain the root cause first, then give the minimal fix."}
+{"weak": "make it better", "ideal": "Improve the text I paste below for clarity and concision without changing its meaning. Keep the same tone and return the revised version followed by a bullet list of the main changes."}
+{"weak": "explain machine learning", "ideal": "Explain machine learning to a complete beginner in under 300 words: what it is, one everyday example, and the difference between supervised and unsupervised learning."}
+{"weak": "write an email", "ideal": "Write a polite, professional email to my manager asking for Friday off. Keep it under 100 words and include a line offering to hand over my tasks beforehand."}
+{"weak": "summarize this", "ideal": "Summarize the article I paste below in 5 bullet points for a busy executive, ending with one sentence on why it matters."}
+{"weak": "help with my resume", "ideal": "Review my resume (pasted below) for a junior data analyst role. Point out weak bullet points, suggest quantified rewrites, and flag anything missing."}
+{"weak": "python sorting", "ideal": "Explain how to sort a list of dictionaries by two keys in Python. Show a code example using sorted() with a key function and mention stability."}
+{"weak": "business idea", "ideal": "Suggest 5 low-cost online business ideas I can start alone with under $500, for someone with strong writing skills. For each, give the first three steps."}
+{"weak": "translate this", "ideal": "Translate the text below from English to Spanish in a neutral, friendly tone suitable for a customer newsletter. Keep product names untranslated."}
+{"weak": "what is react", "ideal": "Explain what React is and the problem it solves, for a developer who knows plain JavaScript. Include a minimal component example and when not to use it."}
+{"weak": "plan my trip", "ideal": "Plan a 4-day trip to Lisbon for two adults on a mid-range budget who like food and history. Give a day-by-day itinerary with approximate costs."}
+{"weak": "write a poem", "ideal": "Write a 12-line rhyming poem about autumn rain in a calm, nostalgic tone, with one vivid image per stanza."}
+{"weak": "how to lose weight", "ideal": "Outline a realistic 8-week plan to lose about 4 kg for a sedentary adult with no medical conditions: weekly habits, a sample day of eating, and a note on when to see a doctor."}
+{"weak": "sql query", "ideal": "Write a PostgreSQL query returning the top 5 customers by total order value in the last 90 days from tables customers(id, name) and orders(id, customer_id, total, created_at). Explain the joins."}
+{"weak": "marketing copy", "ideal": "Write three 20-word Instagram captions for a new vegan protein bar aimed at gym-goers in their twenties. Tone: energetic and funny."}
+{"weak": "explain blockchain", "ideal": "Explain blockchain in plain English for a non-technical small-business owner in 200 words, using a shared ledger analogy and one real use case."}
+{"weak": "interview questions", "ideal": "List 10 behavioral interview questions for a senior product manager role, each with what a strong answer should demonstrate."}
+{"weak": "debug my api", "ideal": "My FastAPI endpoint returns 422 on POST. I will paste the route, the Pydantic model, and the request body. Identify the mismatch and show the corrected code."}
+{"weak": "study plan", "ideal": "Create a 6-week study plan to prepare for the AWS Cloud Practitioner exam with 1 hour per weekday. Give weekly topics, practice tasks and a final review week."}
+{"weak": "recipe", "ideal": "Give me a 30-minute vegetarian dinner recipe for two using chickpeas and spinach, with ingredient quantities, numbered steps and a note on substitutions."}
+{"weak": "css center div", "ideal": "Show three ways to center a div horizontally and vertically in CSS (flexbox, grid, absolute positioning) with a short code sample and when to prefer each."}
+{"weak": "essay about climate change", "ideal": "Write a 500-word persuasive essay for high-school students on why local governments should invest in public transport to reduce emissions, with an introduction, two arguments, and a conclusion."}
+{"weak": "what should i name my company", "ideal": "Suggest 10 short, memorable names for a company that sells eco-friendly pet products. Avoid made-up words, and note which have likely .com availability concerns."}
+{"weak": "write a story", "ideal": "Write a 400-word science-fiction short story about a lighthouse keeper on Mars, in the third person, with a twist ending."}
+{"weak": "git help", "ideal": "Explain how to undo my last git commit while keeping the changes staged, and how to do it if I already pushed. Give the exact commands and the risks of each."}
+{"weak": "improve my linkedin", "ideal": "Rewrite my LinkedIn About section (pasted below) for a software engineer moving into product management. Keep it first-person, under 120 words, and open with a strong hook."}
+{"weak": "excel formula", "ideal": "Give me an Excel formula that sums values in column C only when column A equals North and column B is after 1 Jan 2025. Explain each part of the formula."}
+{"weak": "advice", "ideal": "I have two job offers: a startup with higher equity and a large company with higher salary. Give me a framework to decide, with the key questions to ask and how to weigh them."}
+{"weak": "build an app", "ideal": "Outline the architecture for a simple habit-tracking mobile app for iOS and Android: recommended stack, main screens, data model, and a 4-week MVP roadmap."}
+{"weak": "history of rome", "ideal": "Summarize the rise and fall of the Roman Empire in a timeline of 10 key events with one sentence of significance each, for a high-school history class."}
+{"weak": "script for video", "ideal": "Write a 60-second YouTube Shorts script explaining how compound interest works, with a hook in the first 3 seconds, a simple example with numbers, and a call to action."}
+{"weak": "javascript async", "ideal": "Explain async/await in JavaScript for someone who understands callbacks. Show a callback version and the equivalent async/await version of fetching two APIs in sequence, plus error handling."}
+{"weak": "write a cover letter", "ideal": "Write a one-page cover letter for a marketing coordinator role at a nonprofit. I have 2 years of social media experience and a communications degree. Tone: warm and sincere."}
+{"weak": "docker", "ideal": "Explain how to containerize a FastAPI app with Docker: a minimal Dockerfile with comments, the build and run commands, and how to keep the image small."}
+{"weak": "grammar check", "ideal": "Proofread the paragraph below for grammar, spelling and punctuation. Return the corrected text, then list each change with a short reason."}
+{"weak": "give me ideas", "ideal": "Give me 10 creative ideas for a team-building activity for a remote team of 15 people, each doable in under an hour with no budget."}
+{"weak": "math problem", "ideal": "Solve the equation I paste below step by step, explaining each algebraic step, and verify the answer by substitution."}
+{"weak": "customer complaint reply", "ideal": "Draft a reply to a customer whose order arrived two weeks late. Apologize sincerely, offer a 15% refund, and keep it under 120 words in a calm, professional tone."}
+{"weak": "teach me spanish", "ideal": "Create a 2-week beginner Spanish plan for a busy adult with 20 minutes a day: daily focus, 10 essential phrases per week, and a self-test at the end of each week."}
+{"weak": "stock market", "ideal": "Explain how index funds work and how they differ from actively managed funds, for a first-time investor. Cover fees, diversification and risk in a comparison table. This is educational, not advice."}
+{"weak": "regex", "ideal": "Write a regular expression that matches valid IPv4 addresses and explain each part. Include 3 matching and 3 non-matching examples."}
+{"weak": "presentation", "ideal": "Create an outline for a 10-minute presentation to executives proposing a switch to a four-day work week: 8 slides with a title and key points for each."}
+{"weak": "compare phones", "ideal": "Compare the iPhone 15 and Pixel 8 for a photography-focused user in a table covering camera quality, battery, software updates and price, then give a recommendation."}
+{"weak": "write tests", "ideal": "Write pytest unit tests for a function is_palindrome(s) that ignores case and punctuation. Cover normal cases, empty string, and unicode, using parametrize."}
+{"weak": "career change", "ideal": "I am a high-school teacher considering a move into UX design. Give me a realistic 6-month transition plan: skills to learn, portfolio projects, and how to reframe my teaching experience."}
+{"weak": "explain taxes", "ideal": "Explain how progressive income tax brackets work using a simple numeric example, for someone who thinks earning more could reduce their take-home pay. Keep it under 250 words."}
+{"weak": "social media post", "ideal": "Write a LinkedIn post announcing that our small team just launched an open-source Python library for CSV validation. Tone: humble and excited, under 150 words, with 3 hashtags."}
+{"weak": "algorithm", "ideal": "Explain binary search: the idea, a Python implementation with comments, its time complexity, and one common off-by-one mistake to avoid."}
