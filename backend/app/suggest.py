@@ -250,10 +250,12 @@ def generate_suggestions(req: SuggestRequest, analysis: Analysis) -> list[str]:
                     STATS["served"] += 1
                     return kept
 
-            # This attempt failed: count each broken rule, then try again (or give up)
+            # This attempt failed: count and log each broken rule, then try again (or give up)
+            problem_texts = []
             for problem in problems:
                 STATS[f"rejected_{problem.rule}"] += 1
-            log.info("attempt %d rejected: %s", attempt, [str(p) for p in problems])
+                problem_texts.append(str(problem))
+            log.info("attempt %d rejected: %s", attempt, problem_texts)
     # The provider could not be reached or answered in an unexpected shape
     except (anthropic.AnthropicError, httpx.HTTPError, KeyError, TypeError) as e:
         STATS["provider_error"] += 1
