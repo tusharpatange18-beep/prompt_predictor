@@ -15,25 +15,35 @@ export interface StripResult {
   map: Record<string, string>;
 }
 
+/**
+ * Replaces personal data with numbered placeholders, e.g. "bob@x.com" -> "[EMAIL_1]".
+ * Returns the cleaned text and a map { "[EMAIL_1]": "bob@x.com" } to undo it later.
+ */
 export function stripPII(input: string): StripResult {
   const map: Record<string, string> = {};
-  const counts: Record<string, number> = {};
+  const counts: Record<string, number> = {}; // how many of each label we have used so far
   let text = input;
-  for (const { label, re } of PATTERNS) {
-    text = text.replace(re, (match) => {
-      counts[label] = (counts[label] ?? 0) + 1;
-      const placeholder = `[${label}_${counts[label]}]`;
-      map[placeholder] = match;
+
+  for (const pattern of PATTERNS) {
+    const label = pattern.label;
+    counts[label] = 0;
+    // replace() calls this function once for every match of the pattern
+    text = text.replace(pattern.re, function (match) {
+      counts[label] = counts[label] + 1;
+      const placeholder = "[" + label + "_" + counts[label] + "]";
+      map[placeholder] = match; // remember the real value, so we can put it back
       return placeholder;
     });
   }
-  return { text, map };
+  return { text: text, map: map };
 }
 
+/** Puts the real values back in place of the placeholders. */
 export function restorePII(text: string, map: Record<string, string>): string {
   let out = text;
-  for (const [placeholder, original] of Object.entries(map)) {
-    out = out.split(placeholder).join(original);
+  for (const placeholder in map) {
+    // split + join replaces EVERY occurrence (replace() with a string only does the first)
+    out = out.split(placeholder).join(map[placeholder]);
   }
   return out;
 }
