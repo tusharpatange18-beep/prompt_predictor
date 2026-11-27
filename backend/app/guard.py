@@ -35,12 +35,15 @@ class Violation:
 
 
 def _numbers(text: str) -> set[str]:
-    return set(_NUMBER.findall(_LIST_MARKER.sub("", text)))
+    """All numbers in the text, ignoring list markers such as "1." or "2)" at line starts."""
+    without_markers = _LIST_MARKER.sub("", text)
+    return set(_NUMBER.findall(without_markers))
 
 
 def check_rewrite(draft: str, rewrite: str) -> list[Violation]:
     """All rule violations for one rewrite. Empty list means it is acceptable."""
-    draft, rewrite = draft.strip(), rewrite.strip()
+    draft = draft.strip()
+    rewrite = rewrite.strip()
     found: list[Violation] = []
 
     if len(rewrite) < MIN_CHARS:
@@ -49,10 +52,12 @@ def check_rewrite(draft: str, rewrite: str) -> list[Violation]:
     if rewrite.casefold() == draft.casefold():
         found.append(Violation("echo", "rewrite is identical to the draft"))
 
+    # Set difference: numbers in the rewrite that were NOT in the draft
     new_numbers = _numbers(rewrite) - _numbers(draft)
     if new_numbers:
         found.append(Violation("invented_number", f"adds numbers the draft never had: {sorted(new_numbers)}"))
 
+    # Same idea for [PLACEHOLDER] slots
     new_slots = set(_SLOT.findall(rewrite)) - set(_SLOT.findall(draft))
     if new_slots:
         found.append(Violation("invented_placeholder", f"adds placeholders the draft never had: {sorted(new_slots)}"))
@@ -66,7 +71,12 @@ def check_rewrite(draft: str, rewrite: str) -> list[Violation]:
     if rewrite.count("?") > draft.count("?"):
         found.append(Violation("question_to_user", "asks the user questions; instruct the assistant to ask instead"))
 
-    limit = min(ABS_MAX_CHARS, max(MIN_MAX_CHARS, MAX_GROWTH * len(draft)))
+    # Length limit: 10x the draft, but never below 240 or above 700 characters
+    limit = MAX_GROWTH * len(draft)
+    if limit < MIN_MAX_CHARS:
+        limit = MIN_MAX_CHARS
+    if limit > ABS_MAX_CHARS:
+        limit = ABS_MAX_CHARS
     if len(rewrite) > limit:
         found.append(Violation("too_long", f"{len(rewrite)} chars, limit is {limit}"))
 
@@ -82,9 +92,9 @@ def filter_rewrites(draft: str, rewrites: list[str]) -> tuple[list[str], list[Vi
         rewrite = raw.strip()
         violations = check_rewrite(draft, rewrite)
         problems.extend(violations)
-        key = rewrite.casefold()
+        key = rewrite.casefold()  # casefold = lower case, so "Plan" and "plan" count as the same
         if violations or key in seen:
-            continue
+            continue  # broken, or a duplicate of one we already kept
         seen.add(key)
         kept.append(rewrite)
     return kept, problems

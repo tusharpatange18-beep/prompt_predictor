@@ -22,6 +22,7 @@ from .schemas import SuggestRequest
 
 log = logging.getLogger(__name__)
 
+# Settings, each can be changed with an environment variable
 PROVIDER = os.environ.get("PP_PROVIDER", "ollama")
 TIMEOUT_S = float(os.environ.get("PP_LLM_TIMEOUT", "40"))
 OLLAMA_URL = os.environ.get("PP_OLLAMA_URL", "http://127.0.0.1:11434")
@@ -69,8 +70,10 @@ REWRITES_SCHEMA = {
     "required": ["rewrites"],
 }
 
+# Matches placeholders like [EMAIL_1] that the extension puts in place of personal data
 _HAS_PLACEHOLDER = re.compile(r"\[[A-Z][A-Z0-9_ ]*\]")
 
+# One SDK client for the whole process (it reads ANTHROPIC_API_KEY itself)
 _claude = anthropic.Anthropic()
 
 # Process-lifetime counters: how often we retry, give up, or reject for each rule.
@@ -78,53 +81,98 @@ STATS: Counter[str] = Counter()
 
 
 def _system_for(draft: str) -> str:
-    return SYSTEM + PLACEHOLDER_RULE if _HAS_PLACEHOLDER.search(draft) else SYSTEM
+    """The system prompt, plus the placeholder rule when the draft contains [EMAIL_1]-style slots."""
+    if _HAS_PLACEHOLDER.search(draft):
+        return SYSTEM + PLACEHOLDER_RULE
+    return SYSTEM
 
 
 def _build_user_message(req: SuggestRequest, analysis: Analysis) -> str:
+    """Everything the model should see about this draft, as one text block."""
     parts = [f"Draft prompt:\n{req.draft}"]
+
     if analysis.missing:
         parts.append("Likely missing: " + ", ".join(analysis.missing))
+
+    # Up to the last 4 chat messages, for context
     if req.recent_messages:
-        recent = "\n".join(f"{m.role}: {m.content}" for m in req.recent_messages[-4:])
-        parts.append(f"Recent conversation:\n{recent}")
+        lines = []
+        for message in req.recent_messages[-4:]:
+            lines.append(f"{message.role}: {message.content}")
+        parts.append("Recent conversation:\n" + "\n".join(lines))
+
+    # Up to 3 of the user's earlier good prompts, so the rewrite matches their style
     if req.similar_prompts:
-        similar = "\n".join(f"- {p}" for p in req.similar_prompts[:3])
-        parts.append(f"The user's past prompts that worked, for style:\n{similar}")
+        lines = []
+        for prompt in req.similar_prompts[:3]:
+            lines.append(f"- {prompt}")
+        parts.append("The user's past prompts that worked, for style:\n" + "\n".join(lines))
+
     return "\n\n".join(parts)
 
 
 def _retry_message(user_message: str, problems: list[Violation]) -> str:
-    rules = "\n".join(f"- {p}" for p in dict.fromkeys(str(p) for p in problems))
+    """The same request again, plus the list of rules the first answer broke (each listed once)."""
+    reasons = []
+    for problem in problems:
+        text = str(problem)
+        if text not in reasons:
+            reasons.append(text)
+
+    lines = []
+    for reason in reasons:
+        lines.append(f"- {reason}")
+    rules = "\n".join(lines)
+
     return (
         f"{user_message}\n\nYour previous answer was rejected for these reasons:\n{rules}\n"
         "Try again. Do not add numbers, placeholders or details that are not in the draft."
     )
 
 
+def _clean_rewrites(items: list) -> list[str]:
+    """Keep only non-empty strings (trimmed), at most 3."""
+    result = []
+    for item in items:
+        if isinstance(item, str) and item.strip():
+            result.append(item.strip())
+    return result[:3]
+
+
 def _parse(text: str) -> list[str] | None:
     """Accept {"rewrites": [...]} or a bare [...], tolerating stray prose around it.
     Returns None when nothing parseable was found, [] when the model said 'no rewrite'."""
-    for open_ch, close_ch in (("{", "}"), ("[", "]")):
-        start, end = text.find(open_ch), text.rfind(close_ch)
+    # Try an object first, then a bare list
+    for open_char, close_char in [("{", "}"), ("[", "]")]:
+        # From the first opening bracket to the last closing one
+        start = text.find(open_char)
+        end = text.rfind(close_char)
         if start == -1 or end <= start:
             continue
         try:
             data = json.loads(text[start : end + 1])
         except json.JSONDecodeError:
-            continue
-        items = data.get("rewrites") if isinstance(data, dict) else data
+            continue  # not valid JSON: try the other bracket type
+
+        if isinstance(data, dict):
+            items = data.get("rewrites")
+        else:
+            items = data
         if isinstance(items, list):
-            return [s.strip() for s in items if isinstance(s, str) and s.strip()][:3]
+            return _clean_rewrites(items)
     return None
 
 
 def _fallback(req: SuggestRequest, analysis: Analysis) -> list[str]:
-    asks = "; ".join(analysis.missing) or "more detail"
+    """A fixed template, used only when the model can't be reached (keeps development usable)."""
+    asks = "; ".join(analysis.missing)
+    if not asks:
+        asks = "more detail"
     return [f"{req.draft.strip()}\n\n(Stub rewrite, no LLM available. Add: {asks}.)"]
 
 
 def _call_ollama(system: str, user_message: str) -> str:
+    """Local model through Ollama's HTTP API. `format` makes it answer in our JSON shape."""
     res = httpx.post(
         f"{OLLAMA_URL}/api/chat",
         json={
@@ -144,6 +192,8 @@ def _call_ollama(system: str, user_message: str) -> str:
 
 
 def _call_claude(system: str, user_message: str) -> str:
+    """Claude through the Anthropic SDK. Low effort: a short rewrite needs little thinking.
+    max_retries=0 because we do our own single retry (with feedback) in generate_suggestions."""
     response = _claude.with_options(timeout=TIMEOUT_S, max_retries=0).messages.create(
         model=CLAUDE_MODEL,
         max_tokens=4000,
@@ -151,39 +201,60 @@ def _call_claude(system: str, user_message: str) -> str:
         output_config={"effort": "low"},
         messages=[{"role": "user", "content": user_message}],
     )
+    # A refusal has no usable text; treat it as "no rewrite" so nothing pops up
     if response.stop_reason == "refusal":
         return '{"rewrites": []}'
-    return "".join(b.text for b in response.content if b.type == "text")
+
+    # The reply can contain several blocks (e.g. thinking); keep only the text blocks
+    text = ""
+    for block in response.content:
+        if block.type == "text":
+            text += block.text
+    return text
 
 
 def _complete(system: str, user_message: str) -> str:
-    call = _call_claude if PROVIDER == "anthropic" else _call_ollama
-    return call(system, user_message)
+    """Sends the request to whichever provider PP_PROVIDER chose."""
+    if PROVIDER == "anthropic":
+        return _call_claude(system, user_message)
+    return _call_ollama(system, user_message)
 
 
 def generate_suggestions(req: SuggestRequest, analysis: Analysis) -> list[str]:
+    """Up to 3 checked rewrites, or [] when there is nothing good to show."""
     STATS["calls"] += 1
     system = _system_for(req.draft)
     user_message = _build_user_message(req, analysis)
     problems: list[Violation] = []
     try:
         for attempt in (1, 2):
-            if attempt == 2:
+            # First try: the plain request. Second try: the request plus what went wrong.
+            if attempt == 1:
+                message = user_message
+            else:
                 STATS["retried"] += 1
-            message = user_message if attempt == 1 else _retry_message(user_message, problems)
-            parsed = _parse(_complete(system, message))
+                message = _retry_message(user_message, problems)
+
+            reply = _complete(system, message)
+            parsed = _parse(reply)
+
             if parsed == []:
                 STATS["no_rewrite_needed"] += 1
                 return []  # the model judged the draft is not a task: no popup
             if parsed is None:
                 problems = [Violation("format", "reply was not a JSON object with a 'rewrites' list")]
             else:
+                # Drop every rewrite that breaks a rule in guard.py
                 kept, problems = filter_rewrites(req.draft, parsed)
                 if kept:
                     STATS["served"] += 1
                     return kept
-            STATS.update(f"rejected_{p.rule}" for p in problems)
+
+            # This attempt failed: count each broken rule, then try again (or give up)
+            for problem in problems:
+                STATS[f"rejected_{problem.rule}"] += 1
             log.info("attempt %d rejected: %s", attempt, [str(p) for p in problems])
+    # The provider could not be reached or answered in an unexpected shape
     except (anthropic.AnthropicError, httpx.HTTPError, KeyError, TypeError) as e:
         STATS["provider_error"] += 1
         log.warning("LLM call failed (%s), using fallback: %s", PROVIDER, e)

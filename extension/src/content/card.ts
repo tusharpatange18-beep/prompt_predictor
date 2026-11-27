@@ -23,9 +23,14 @@ let host: HTMLDivElement | null = null;
 let cleanup: (() => void) | null = null;
 
 export function hideCard() {
-  cleanup?.();
+  // Stop following window resize/scroll, then remove the card from the page
+  if (cleanup) {
+    cleanup();
+  }
   cleanup = null;
-  host?.remove();
+  if (host) {
+    host.remove();
+  }
   host = null;
 }
 
@@ -53,7 +58,9 @@ export function showCard(anchor: HTMLElement, opts: CardOptions) {
   close.className = "x";
   close.textContent = "×";
   close.setAttribute("aria-label", "Dismiss");
-  close.addEventListener("click", () => opts.onDismiss());
+  close.addEventListener("click", function () {
+    opts.onDismiss();
+  });
   head.append(title, close);
   card.append(head);
 
@@ -61,7 +68,9 @@ export function showCard(anchor: HTMLElement, opts: CardOptions) {
     const item = document.createElement("div");
     item.className = "item";
     item.textContent = text; // textContent, never innerHTML: the text comes from an LLM
-    item.addEventListener("click", () => opts.onAccept(text));
+    item.addEventListener("click", function () {
+      opts.onAccept(text);
+    });
     card.append(item);
   }
 
@@ -70,20 +79,28 @@ export function showCard(anchor: HTMLElement, opts: CardOptions) {
   document.body.append(el);
   host = el;
 
-  const place = () => {
-    const rect = anchor.getBoundingClientRect();
-    const h = el.offsetHeight;
-    const below = rect.bottom + 8;
+  // Puts the card right under the message box, same left edge and width
+  function place() {
+    const rect = anchor.getBoundingClientRect(); // where the box is on screen
+    const cardHeight = el.offsetHeight;
+    let top = rect.bottom + 8; // 8px gap below the box
     // ChatGPT's box sits at the bottom of the viewport, so flip above if there's no room.
-    const top = below + h > window.innerHeight ? Math.max(8, rect.top - h - 8) : below;
-    el.style.left = `${rect.left}px`;
-    el.style.width = `${rect.width}px`;
-    el.style.top = `${top}px`;
-  };
+    if (top + cardHeight > window.innerHeight) {
+      top = rect.top - cardHeight - 8;
+      if (top < 8) {
+        top = 8; // never above the top of the window
+      }
+    }
+    el.style.left = rect.left + "px";
+    el.style.width = rect.width + "px";
+    el.style.top = top + "px";
+  }
+
   place();
+  // Re-place when the window size changes or anything scrolls (true = also inner scroll areas)
   window.addEventListener("resize", place);
   window.addEventListener("scroll", place, true);
-  cleanup = () => {
+  cleanup = function () {
     window.removeEventListener("resize", place);
     window.removeEventListener("scroll", place, true);
   };

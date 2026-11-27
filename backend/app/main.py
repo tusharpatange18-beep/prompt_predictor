@@ -31,11 +31,17 @@ def health():
 
 @app.post("/v1/suggest", response_model=SuggestResponse)
 def suggest(req: SuggestRequest) -> SuggestResponse:
+    # 1) Cheap rule-based check: is the draft weak enough to be worth a suggestion?
     analysis = analyze(req.draft)
     long_enough = len(req.draft.split()) >= MIN_WORDS_TO_SUGGEST
     show = analysis.show and long_enough
 
-    suggestions = generate_suggestions(req, analysis) if show else []
+    # 2) Only then ask the LLM (slow and, with Claude, paid)
+    suggestions = []
+    if show:
+        suggestions = generate_suggestions(req, analysis)
+
+    # The card appears only if the draft is weak AND we have at least one checked rewrite
     return SuggestResponse(
         suggestion_id=uuid.uuid4().hex,
         score=analysis.score,
@@ -48,6 +54,7 @@ def suggest(req: SuggestRequest) -> SuggestResponse:
 
 @app.post("/v1/feedback")
 def feedback(req: FeedbackRequest):
+    """Appends one line per accepted / edited / dismissed suggestion (JSON Lines file)."""
     FEEDBACK_LOG.parent.mkdir(parents=True, exist_ok=True)
     record = {
         "ts": datetime.now(timezone.utc).isoformat(),
